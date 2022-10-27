@@ -78,9 +78,19 @@ def find_optimal_pairs(N, weights) -> (float, list[tuple[int, int]]):
     m.objective = mip.minimize(mip.xsum(weights[i, j] * p[i, j] for i, j in pairs))
 
     m.verbose = False
-    status = m.optimize()
-    if status != mip.OptimizationStatus.OPTIMAL:
-        raise Exception("not optimal")
+    status = m.optimize(max_seconds=300)
+    # Optimizer will stop searching for optimal solution after max 300 seconds. If non optimal but a feasible solution 
+    # (no one apperaing in two pairings) is found, it will be used going forward. 
+    # If no feasible solution is found, an Exception is raised
+    if status == mip.OptimizationStatus.OPTIMAL:
+        print('Optimal solution found: optimal solution cost {} found'.format(m.objective_value))
+    elif status == mip.OptimizationStatus.FEASIBLE:
+        print('Feasible, not oprimal solution found: sol.cost {} found, best possible: {} '.format(m.objective_value, m.objective_bound))
+    elif status == mip.OptimizationStatus.NO_SOLUTION_FOUND:
+        print('no feasible solution found, lower bound is: {} '.format(m.objective_bound))
+    
+    if status != mip.OptimizationStatus.OPTIMAL and status != mip.OptimizationStatus.FEASIBLE:
+        raise Exception("No feasible solution found")
 
     return m.objective_value, [(i, j) for i, j in pairs if p[i, j].x > 0.5]
 
