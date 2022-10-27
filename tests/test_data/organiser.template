@@ -1,8 +1,10 @@
-G'day {{organiser.name}},
+Hi {{organiser.name}},
 
-This round of coffee roulette you've been paired with {{buyer.name}} from {{buyer.organisation}}. 
+Here comes the your next Coffee Buddies pairing: 
 
-This month your job is to pick a venue and let {{buyer.name}} know about it on {{buyer.email}}, they will buy the coffee!
+This round of coffee roulette you've been paired with {{buyer.name}}. 
+
+It is your job to set up a meeting with {{buyer.name}} (Email:{{buyer.email}} ), please get in contact in the next two days. 
 
 Have fun!
-Coffee Roulette
+The Coffee Roulette Team
