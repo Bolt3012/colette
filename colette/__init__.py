@@ -18,7 +18,7 @@ from jinja2 import Template, Environment
 
 # NB: these must all be integers!
 COST_OF_NOT_PAIRING = 50
-COST_OF_PAIRING_WITHIN_ORG = 10
+COST_OF_PAIRING_WITHIN_ORG = 5
 
 COST_OF_PAIRING_SAME_TYPE = 1  # as in role in pair: orgraniser or coffee buyer
 
@@ -27,7 +27,7 @@ COST_OF_PAIRING_PREVIOUS_PARTNER_ONE_ROUND_AGO = 1_000_000
 # Cost of pairing players that were previously paired between 2 to N rounds ago
 COST_OF_PAIRING_PREVIOUS_PARTNER_TWO_TO_N_ROUND_AGO = 50
 # Number of round before a previous pairing doesn't matter anymore
-COST_OF_PAIRING_PREVIOUS_PARTNER_N = 10
+COST_OF_PAIRING_PREVIOUS_PARTNER_N = 4
 
 
 random.seed(1987)  # for reproducibility
@@ -78,19 +78,9 @@ def find_optimal_pairs(N, weights) -> (float, list[tuple[int, int]]):
     m.objective = mip.minimize(mip.xsum(weights[i, j] * p[i, j] for i, j in pairs))
 
     m.verbose = False
-    status = m.optimize(max_seconds=300)
-    # Optimizer will stop searching for optimal solution after max 300 seconds. If non optimal but a feasible solution 
-    # (no one apperaing in two pairings) is found, it will be used going forward. 
-    # If no feasible solution is found, an Exception is raised
-    if status == mip.OptimizationStatus.OPTIMAL:
-        print('Optimal solution found: optimal solution cost {} found'.format(m.objective_value))
-    elif status == mip.OptimizationStatus.FEASIBLE:
-        print('Feasible, not oprimal solution found: sol.cost {} found, best possible: {} '.format(m.objective_value, m.objective_bound))
-    elif status == mip.OptimizationStatus.NO_SOLUTION_FOUND:
-        print('no feasible solution found, lower bound is: {} '.format(m.objective_bound))
-    
-    if status != mip.OptimizationStatus.OPTIMAL and status != mip.OptimizationStatus.FEASIBLE:
-        raise Exception("No feasible solution found")
+    status = m.optimize(max_seconds=120)
+    if status != mip.OptimizationStatus.OPTIMAL:
+        raise Exception("not optimal")
 
     return m.objective_value, [(i, j) for i, j in pairs if p[i, j].x > 0.5]
 
@@ -240,7 +230,9 @@ def new_round(
             weights[i, j] = cost
 
     pairs = []
+    print("Finding optimal pairs123")
     cost, optimal_pair_indices = find_optimal_pairs(len(players), weights)
+    print("Optimization finished")
     for i, j in optimal_pair_indices:
         if weights[i, j] > 0:
             # TODO: something better than this, option to turn off or something
@@ -407,8 +399,11 @@ def email(path="data", round=None):
             continue
         msgs.append(msg_from_template(p.buyer.email, p, buyer_template))
         msgs.append(msg_from_template(p.organiser.email, p, organiser_template))
-
+    
+    #s = smtplib.SMTP_SSL(cfg["email"]["server"], cfg["email"].getint("port", fallback=587))
     s = smtplib.SMTP(cfg["email"]["server"], cfg["email"].getint("port", fallback=587))
+    print(cfg["email"]["server"], cfg["email"].getint("port", fallback=587))
+    #s = smtplib.SMTP_SSL("securesmtp.t-online.de", 465)
     s.ehlo()
 
     if cfg["email"].getboolean("ssl", fallback=False):
